@@ -20,6 +20,7 @@ n_hidden_neurons = 10
 
 # initializes simulation in individual evolution mode, for single static enemy.
 env = Environment(experiment_name=experiment_name,
+				  enemies=[1],
 				  playermode="ai",
 				  player_controller=player_controller(n_hidden_neurons),
 			  	  speed="normal",
@@ -28,34 +29,47 @@ env = Environment(experiment_name=experiment_name,
 				  visuals=True)
 
 
-ini = time.time()  # sets time marker
 
 
-# genetic algorithm params
-
-run_mode = 'test' # train or test
-
-# number of weights for multilayer with 10 hidden neurons
-n_vars = (env.get_num_sensors()+1)*n_hidden_neurons + (n_hidden_neurons+1)*5
-
-
-dom_u = 1
-dom_l = -1
-npop = 100
-gens = 30
-mutation = 0.2
-last_best = 0
-
-
-def simulation(env,x):
-    f,p,e,t = env.play(pcont=x)
-    return abs(f*-1)
-
-with open('best_x___||') as f:
+#TESTING WEIGHTS OBTAINED FROM OWN EA
+#MAKE SURE THE FILENAME FOR WEIGHTS AND FITNESS CORRESPONDS TO THE WEIGHTS AND FIT YOU WANT TO TEST
+#SEE BELOW TO TEST WEIGHTS FROM CMA
+with open('pop_level1') as f:
     pop = f.readlines()
 
 for i in range(len(pop)):
-    pop[i] = pop[i].strip()
-    pop[i] = float(pop[i])
+	pop[i] = pop[i].split(',')
+	for j in range(len(pop[i])):
+		pop[i][j] = pop[i][j].strip()
+		pop[i][j] = float(pop[i][j])
 
-env.play(pcont=np.array(pop))
+
+with open('fit_level1') as f:
+    fit = f.readlines()
+
+for i in range(len(fit)):
+	fit[i] = fit[i].split(',')
+	for j in range(len(fit[i])):
+		fit[i][j] = fit[i][j].strip()
+		fit[i][j] = float(fit[i][j])
+
+
+
+max_i = np.argmax(fit)
+pop = pop[max_i]
+
+
+#IF TESTING CMA WEIGHTS UNCOMMENT BELOW
+""" 
+with open('best_x_cma_level1') as f:
+	pop = f.readlines()
+for i in range(len(pop)):
+	pop[i] = pop[i].split(',')
+	for j in range(len(pop[i])):
+		pop[i][j] = pop[i][j].strip()
+		pop[i][j] = float(pop[i][j])
+pop = pop[0]
+"""
+
+f,_,_,_ = env.play(pcont=np.array(pop))
+print('Fitness: ', f)
