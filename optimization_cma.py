@@ -49,32 +49,54 @@ gens = 30
 mutation = 0.2
 last_best = 0
 
-def simulation(env,x):
-    f,p,e,t = env.play(pcont=x)
-    f = (f - (-100)) / (100 - (-100)) * 100
-    return abs(f - 100)
+def simulation(env,x,min):
+    f, p, e, t = env.play(pcont=x)
+    if min == True:
+        f = (f - (-100)) / (100 - (-100)) * 100
+        return abs(f - 100)
+    else:
+        return f
 
+def evaluate(env, x,min):
+    return np.array(list(map(lambda y: simulation(env,y,min), x)))
 
-#init weights
-pop = np.random.uniform(dom_l, dom_u, (1, n_vars))
-#init cma
-es = cma.CMAEvolutionStrategy(pop, 40)
+for i in range(1,11):
+    #init weights
+    pop = np.random.uniform(dom_l, dom_u, (1, n_vars))
+    #init cma
+    es = cma.CMAEvolutionStrategy(pop, 40)
 #set options
 #es.opts.set({'tolflatfitness' : 5})
-es.opts.set({'ftarget': 0})
-
+    #es.opts.set({'ftarget': 0})
+    f_best = []
+    avg_fit = []
 #find solution for weights
-while not es.stop():
+    while not es.stop():
     #ask set of new solutions
-    solutions = es.ask()
+        solutions = es.ask()
     #evluate each new solutions
-    es.tell(solutions,[simulation(env, pop) for pop in solutions])
-    es.logger.add()
-    es.disp()
+        es.tell(solutions,[simulation(env, pop, min=True) for pop in solutions])
+        es.logger.add()
+        es.disp()
+        #append best fitness
+        f_best.append(es.result_pretty()[1])
+        #get the current population
+        pop = es.pop_sorted
+        #evaluate the current population - with fitness maximisation
+        pop_fit = evaluate(env, pop, min=False)
+        #calculate the avg fitness
+        avg_pop_fit = np.sum(pop_fit) / len(pop_fit)
+        #append it
+        avg_fit.append(avg_pop_fit)
+        #same number of generations as in own EA
+        if es.countiter == 1000:
+            break
 
 #save plot
-es.logger.plot()
-plt.savefig('plot_cma_level1.png')
+    es.logger.plot()
+    plt.savefig('plot_cma_level1_try'+str(i)+'.png')
 #save best_weights
-best_weights = es.result_pretty()[0].copy()
-np.savetxt('best_x_cma_level1', best_weights, delimiter=',')
+    best_weights = es.result_pretty()[0].copy()
+    np.savetxt('best_x_cma_level1_try'+str(i), best_weights, delimiter=',')
+    np.savetxt('f_best_cma_level1_try'+str(i), f_best, delimiter=',')
+    np.savetxt('avg_fit_cma_level1_try'+str(i), avg_fit, delimiter=',')

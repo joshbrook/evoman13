@@ -92,7 +92,7 @@ def crossover(mut_1, mut_2):
 
     return recombined_offspring
 
-def survivor_selection(second_parent, offspring, pop, env, id_second, replacement, evolve_f):
+def survivor_selection(second_parent, offspring, pop, env, id_second, replacement):
 
 
     #evaluate second parent and offspring
@@ -106,7 +106,6 @@ def survivor_selection(second_parent, offspring, pop, env, id_second, replacemen
         print('OLD FITNESS: ', f_second_parent)
         print('NEW FITNESS', f_offspring)
         replacement += 1
-        evolve_f.append(f_offspring)
 
     #evaluate new pop fit
     fit = evaluate(env, pop)
@@ -116,20 +115,21 @@ def survivor_selection(second_parent, offspring, pop, env, id_second, replacemen
 
 def main():
     # choose this for not using visuals and thus making experiments faster
-    headless = True
-    if headless:
-        os.environ["SDL_VIDEODRIVER"] = "dummy"
+    for i in range(2,11):
+        headless = True
+        if headless:
+            os.environ["SDL_VIDEODRIVER"] = "dummy"
 
 
-    experiment_name = 'optimization_test'
-    if not os.path.exists(experiment_name):
-        os.makedirs(experiment_name)
+        experiment_name = 'optimization_test'
+        if not os.path.exists(experiment_name):
+            os.makedirs(experiment_name)
 
-    n_hidden_neurons = 10
+        n_hidden_neurons = 10
 
     # initializes simulation in individual evolution mode, for single static enemy.
-    env = Environment(experiment_name=experiment_name,
-                    enemies=[1],
+        env = Environment(experiment_name=experiment_name,
+                    enemies=[3],
                     playermode="ai",
                     player_controller=player_controller(n_hidden_neurons), # you  can insert your own controller here
                     enemymode="static",
@@ -139,69 +139,72 @@ def main():
 
 
     # number of weights for multilayer with 10 hidden neurons
-    n_vars = (env.get_num_sensors()+1)*n_hidden_neurons + (n_hidden_neurons+1)*5
+        n_vars = (env.get_num_sensors()+1)*n_hidden_neurons + (n_hidden_neurons+1)*5
 
     # start writing your own code from here
 
 
-    dom_u = 1
-    dom_l = -1
-    npop = 100
-    gens = 10000
-    mutation_crit = 0.2
-    replacement = 0
-    exit_local_optimum = False
-    pop  = np.random.uniform(dom_l, dom_u, (npop, n_vars))
-    pop_fit = evaluate(env, pop)
-    best_f = 0
-    evolve_f = []
+        dom_u = 1
+        dom_l = -1
+        npop = 100
+        gens = 1000
+        mutation_crit = 0.2
+        replacement = 0
+        exit_local_optimum = False
+        pop  = np.random.uniform(dom_l, dom_u, (npop, n_vars))
+        pop_fit = evaluate(env, pop)
+        best_f = [np.amax(np.array(pop_fit))]
+        mean_f = [np.mean(np.array(pop_fit))]
+    #print(mean_f)
+
 
     #generations
-    for g in range(gens):
+        for g in range(gens):
         #keep track of f best
-        if np.amax(np.array(pop_fit)) > best_f:
-            print('NEW BEST FITNESS EVER!')
+            best_f.append(np.amax(np.array(pop_fit)))
+            mean_f.append(np.mean(np.array(pop_fit)))
 
-        best_f = np.amax(np.array(pop_fit))
+            if np.amax(np.array(pop_fit)) > best_f[-1]:
+                print('NEW BEST FITNESS EVER!')
 
         #print info about gen and best fit
-        if g % 5 == 0:
-            print('########################')
-            print('GEN: ', g)
-            print('BEST_FITNESS: ', np.amax(np.array(pop_fit)))
-            print('########################')
+            if g % 5 == 0:
+                print('########################')
+                print('GEN: ', g)
+                print('BEST_FITNESS: ', np.amax(np.array(pop_fit)))
+                print('########################')
 
 
         #PARENT SELECTION
-        best_parent, second_parent, index_second = parent_selection(pop, pop_fit)
+            best_parent, second_parent, index_second = parent_selection(pop, pop_fit)
 
         #Mutations
-        mut_best = mutation(best_parent, mutation_crit, exit_local_optimum)
-        mut_second = mutation(second_parent, mutation_crit, exit_local_optimum)
+            mut_best = mutation(best_parent, mutation_crit, exit_local_optimum)
+            mut_second = mutation(second_parent, mutation_crit, exit_local_optimum)
 
         #Cross-over
-        offspring = crossover(mut_best, mut_second)
+            offspring = crossover(mut_best, mut_second)
 
         #Survivor selection
-        pop, pop_fit, replacement = survivor_selection(second_parent, offspring, pop, env, index_second, replacement, evolve_f)
+            pop, pop_fit, replacement = survivor_selection(second_parent, offspring, pop, env, index_second, replacement)
 
         #check for no evolution
-        if g % 20 == 0 and g != 0:
-            if replacement < 5:
-                exit_local_optimum = True
-                print('--------FINDIND EXIT OF LOCAL OPTIMUM-----------')
-            else:
-                exit_local_optimum = False
-            replacement = 0
+            if g % 20 == 0 and g != 0:
+                if replacement < 5:
+                    exit_local_optimum = True
+                    print('--------FINDIND EXIT OF LOCAL OPTIMUM-----------')
+                else:
+                    exit_local_optimum = False
+                replacement = 0
 
             # plot
         #best_f.append(simulation(env, best_parent))
 
     #save results
-    np.savetxt('pop_level1', pop, delimiter=',')
-    np.savetxt('fit_level1', pop_fit, delimiter=',')
-    np.savetxt('best_f_level1', best_f, delimiter=',')
-    np.savetxt('evolve_f_level1', evolve_f, delimiter=',')
+        np.savetxt('pop_level3_try'+str(i), pop, delimiter=',')
+        np.savetxt('fit_level3_try'+str(i), pop_fit, delimiter=',')
+        np.savetxt('best_f_level3_try'+str(i), best_f, delimiter=',')
+        np.savetxt('mean_f_level3_try'+str(i), mean_f, delimiter=',')
 
 
 
