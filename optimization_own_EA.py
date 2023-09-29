@@ -90,9 +90,7 @@ def survivor_selection(mutated, children, pop, fit_pop, n_top, npop, env, rep):
     Test each child against random individual from previous generation.
     If better, replace previous individual with new child in next generation.
     """
-    bottom_n = pop[
-        np.argpartition(np.array(fit_pop), -(npop - n_top))[-(npop - n_top) :]
-    ]
+    bottom_n = pop[np.argpartition(np.array(fit_pop), (npop - n_top))[(npop - n_top) :]]
     newpop = list(mutated)
 
     for child in children:
@@ -168,10 +166,9 @@ def main():
         for g in range(gens + 1):
             # keep track of f best
             best_f.append(np.amax(np.array(pop_fit)))
-            mean_f.append(np.mean(np.array(pop_fit)))
 
-            if np.amax(np.array(pop_fit)) > best_f[-1]:
-                print("-----NEW BEST FITNESS----")
+            # keep track of mean f
+            mean_f.append(np.mean(np.array(pop_fit)))
 
             # print info about gen and best fit
             if g % 5 == 0:
