@@ -5,215 +5,218 @@
 # karine.smiras@gmail.com     				                                  #
 ###############################################################################
 
-# imports framework
-import random
-import sys
-
+# import framework
 from evoman.environment import Environment
 from demo_controller import player_controller
 
-# imports other libs
+# import other libs
 import numpy as np
+import random
 import os
-import cma
-import matplotlib.pyplot as plt
 
-# runs simulation
-def simulation(env,x,min=False):
+
+def simulation(env, x, min=False):
+    """Simulates one individual and returns its fitness"""
     f, p, e, t = env.play(pcont=x)
-    if min == False:
+    if not min:
         return f
     else:
         f = (f - (-100)) / (100 - (-100)) * 100
         return abs(f - 100)
 
-# evaluation
+
 def evaluate(env, x):
-    return np.array(list(map(lambda y: simulation(env,y), x)))
+    """Evaluates fitness of entire population"""
+    return np.array(list(map(lambda y: simulation(env, y), x)))
 
 
-def parent_selection(pop, fit_pop):
-    #pick best parent in pop
-    best_fit_index = np.argmax(np.array(fit_pop))
-    best_parent = pop[best_fit_index]
+def parent_selection(n_top, pop, fit_pop):
+    """Extracts top n candidates"""
+    return pop[np.argpartition(np.array(fit_pop), -n_top)[-n_top:]]
 
-    #for now random second parent
-    rand_i = random.randint(0,len(pop)-1)
-    second_parent = pop[rand_i]
 
-    #check if they are not the same
-    """ 
-    while set(best_parent) == set(second_parent.sort()):
-        print('SAME PARENTS FOUND')
-        print('###############################')
-        print('1: ',best_parent[:5])
-        print('2: ',second_parent[:5])
-        print('###############################')
+def mutation(parents, mut, exit_local_optimum):
+    """gaussian noise mutation"""
+    mutated = []
+    for parent in parents:
+        # duplicate parent
+        mut_parent = parent.copy()
 
-        rand_i = random.randint(0, len(pop) + 1)
-        second_parent = pop[rand_i]
+        # iter over the genes and randomly add gaussian noise
+        # mut is the mutation criteria between 0 & 1 - higher --> more prob of mutation
+        for e in range(len(parent)):
+            if random.uniform(0, 1) < mut:
+                # if no offspring > parent --> increase step size to find solutions outside local optimum
+                if exit_local_optimum:
+                    mut_e = mut_parent[e] + np.random.normal(0, 10)
+                else:
+                    # else add noise btw -1 and 1
+                    mut_e = mut_parent[e] + np.random.normal(0, 1)
+                mut_parent[e] = mut_e
+
+        mutated.append(mut_parent)
+
+    return np.array(mutated)
+
+
+def crossover(mutated, n_top, npop):
+    """simple arithmetic random-index-based crossover"""
+    children = []
+    for n in range(npop - n_top):
+        # take two random candidate parents from top_n individuals
+        p1, p2 = random.sample(list(mutated), 2)
+
+        # generate random index between 2nd element & one before last element
+        i = random.randint(1, len(p1))
+
+        # concatenate p1 until i with p2 going from i
+        # EXAMPLE
+        # p1 = ------------
+        # p2 = &&&&&&&&&&&&
+        # i = 3
+        # c1 = ---&&&&&&&&&
+        # c2 = &&&---------
+
+        children.append(np.concatenate((p1[:i], p2[i:])))
+
+    return children
+
+
+def survivor_selection(mutated, children, pop, fit_pop, n_top, npop, env, rep):
     """
+    Modified Elitism selection strategy.
+    Keep top_n parents in next generation
+    Create 80 children from pairs of top_n parents.
+    Test each child against random individual from previous generation.
+    If better, replace previous individual with new child in next generation.
+    """
+    bottom_n = pop[
+        np.argpartition(np.array(fit_pop), -(npop - n_top))[-(npop - n_top) :]
+    ]
+    newpop = list(mutated)
 
-    return best_parent, second_parent, rand_i
+    for child in children:
+        # evaluate child with random individual from previous generation
+        parent = random.choice(bottom_n)
+        f_c = simulation(env, child)
+        f_p = simulation(env, parent)
 
+        # if f of child > f of chosen individual, then replace
+        if f_c > f_p:
+            newpop.append(child)
+            rep += 1
+        else:
+            newpop.append(parent)
 
-def mutation(parent, mut, exit_local_optimum):
+    pop = np.array(newpop)
 
-    #gaussian noise mutation
-    #duplicate parent
-    mut_parent = parent.copy()
-
-    #iter over the genes and randomly add goissian noise
-    #mut is the mutation criteria btw 0 & 1 - higher --> more prob of mutation
-    for e in range(len(parent)):
-        if random.randint(0, 1) < mut:
-            #if no offspring > parent --> increase step size to find solutions outside local optimum
-            if exit_local_optimum == True:
-                mut_e = mut_parent[e] + np.random.normal(0, 10)
-            else:
-            #else add noise btw -1 and 1
-                mut_e = mut_parent[e] + np.random.normal(0, 1)
-            mut_parent[e] = mut_e
-
-    #return the mutated parent
-    return mut_parent
-
-def crossover(mut_1, mut_2):
-    
-    #simple arithmetic crossover
-    #generate random index btw 2nd element & one before last element
-    i = random.randint(1, len(mut_1))
-
-    #concatenate mut_1 until i with mut_2 going from i
-    #------------    &&&&&&&&&&
-    #             i
-    #       ------&&&&&&&
-    recombined_offspring = np.concatenate((mut_1[:i], mut_2[i:]))
-
-    return recombined_offspring
-
-def survivor_selection(second_parent, offspring, pop, env, id_second, replacement):
-
-
-    #evaluate second parent and offspring
-    f_second_parent = simulation(env, second_parent)
-    f_offspring = simulation(env, offspring)
-
-    #if f of off-spring > f of second_parent then replace
-    if f_offspring > f_second_parent:
-        pop[id_second] = offspring
-        print('###REPLACEMENT###')
-        print('OLD FITNESS: ', f_second_parent)
-        print('NEW FITNESS', f_offspring)
-        replacement += 1
-
-    #evaluate new pop fit
+    # evaluate new pop fitness
     fit = evaluate(env, pop)
-    return pop, fit, replacement
-
+    return pop, fit, rep
 
 
 def main():
-    # choose this for not using visuals and thus making experiments faster
-    for i in range(2,11):
+    level = 1
+    print("\nInitializing simulation, level " + str(level))
+
+    for i in range(1, 11):
+        print("\nRun: " + str(i))
+
+        # setup
         headless = True
         if headless:
             os.environ["SDL_VIDEODRIVER"] = "dummy"
 
-
-        experiment_name = 'optimization_test'
+        experiment_name = "optimization_test"
         if not os.path.exists(experiment_name):
             os.makedirs(experiment_name)
 
         n_hidden_neurons = 10
 
-    # initializes simulation in individual evolution mode, for single static enemy.
-        env = Environment(experiment_name=experiment_name,
-                    enemies=[3],
-                    playermode="ai",
-                    player_controller=player_controller(n_hidden_neurons), # you  can insert your own controller here
-                    enemymode="static",
-                    level=2,
-                    speed="fastest",
-                    visuals=False)
+        # initialise simulation
+        env = Environment(
+            experiment_name=experiment_name,
+            enemies=[level],
+            playermode="ai",
+            player_controller=player_controller(n_hidden_neurons),
+            enemymode="static",
+            level=2,
+            speed="fastest",
+            visuals=False,
+        )
 
+        # no. weights for multilayer with 10 hidden neurons
+        n_vars = (env.get_num_sensors() + 1) * n_hidden_neurons + (
+            n_hidden_neurons + 1
+        ) * 5
 
-    # number of weights for multilayer with 10 hidden neurons
-        n_vars = (env.get_num_sensors()+1)*n_hidden_neurons + (n_hidden_neurons+1)*5
-
-    # start writing your own code from here
-
-
+        # variables
+        n_top = 10
         dom_u = 1
         dom_l = -1
-        npop = 100
-        gens = 1000
+        npop = 40
+        gens = 100
         mutation_crit = 0.2
-        replacement = 0
+        rep = 0
         exit_local_optimum = False
-        pop  = np.random.uniform(dom_l, dom_u, (npop, n_vars))
+        pop = np.random.uniform(dom_l, dom_u, (npop, n_vars))
         pop_fit = evaluate(env, pop)
         best_f = [np.amax(np.array(pop_fit))]
         mean_f = [np.mean(np.array(pop_fit))]
-    #print(mean_f)
 
-
-    #generations
-        for g in range(gens):
-        #keep track of f best
+        # generations
+        for g in range(gens + 1):
+            # keep track of f best
             best_f.append(np.amax(np.array(pop_fit)))
             mean_f.append(np.mean(np.array(pop_fit)))
 
             if np.amax(np.array(pop_fit)) > best_f[-1]:
-                print('NEW BEST FITNESS EVER!')
+                print("-----NEW BEST FITNESS----")
 
-        #print info about gen and best fit
+            # print info about gen and best fit
             if g % 5 == 0:
-                print('########################')
-                print('GEN: ', g)
-                print('BEST_FITNESS: ', np.amax(np.array(pop_fit)))
-                print('########################')
+                print("########################")
+                print("GEN: ", g)
+                print("BEST FITNESS: ", np.amax(np.array(pop_fit)))
+                print("MEAN FITNESS: ", np.mean(np.array(pop_fit)))
 
+            # Parent Selection
+            parents = parent_selection(n_top, pop, pop_fit)
 
-        #PARENT SELECTION
-            best_parent, second_parent, index_second = parent_selection(pop, pop_fit)
+            # Mutations
+            mutated = mutation(parents, mutation_crit, exit_local_optimum)
 
-        #Mutations
-            mut_best = mutation(best_parent, mutation_crit, exit_local_optimum)
-            mut_second = mutation(second_parent, mutation_crit, exit_local_optimum)
+            # Crossover
+            children = crossover(mutated, n_top, npop)
 
-        #Cross-over
-            offspring = crossover(mut_best, mut_second)
+            # Survivor selection
+            pop, pop_fit, rep = survivor_selection(
+                mutated, children, pop, pop_fit, n_top, npop, env, rep
+            )
 
-        #Survivor selection
-            pop, pop_fit, replacement = survivor_selection(second_parent, offspring, pop, env, index_second, replacement)
-
-        #check for no evolution
-            if g % 20 == 0 and g != 0:
-                if replacement < 5:
+            # check for no evolution
+            if g % 10 == 0 and g != 0 and best_f.count(best_f[-1]) > 10:
+                if rep < 5:
                     exit_local_optimum = True
-                    print('--------FINDIND EXIT OF LOCAL OPTIMUM-----------')
+                    print("-----ATTEMPT EXIT LOCAL OPTIMUM-----")
                 else:
                     exit_local_optimum = False
-                replacement = 0
+                rep = 0
 
-            # plot
-        #best_f.append(simulation(env, best_parent))
-
-    #save results
-        np.savetxt('pop_level3_try'+str(i), pop, delimiter=',')
-        np.savetxt('fit_level3_try'+str(i), pop_fit, delimiter=',')
-        np.savetxt('best_f_level3_try'+str(i), best_f, delimiter=',')
-        np.savetxt('mean_f_level3_try'+str(i), mean_f, delimiter=',')
-
-
-
-
-
-
-
+        # save results
+        np.savetxt(
+            "output/pop_level" + str(level) + "_try" + str(i), pop, delimiter=","
+        )
+        np.savetxt(
+            "output/fit_level" + str(level) + "_try" + str(i), pop_fit, delimiter=","
+        )
+        np.savetxt(
+            "output/best_f_level" + str(level) + "_try" + str(i), best_f, delimiter=","
+        )
+        np.savetxt(
+            "output/mean_f_level" + str(level) + "_try" + str(i), mean_f, delimiter=","
+        )
 
 
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
