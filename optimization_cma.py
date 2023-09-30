@@ -19,9 +19,14 @@ if not os.path.exists(experiment_name):
     os.makedirs(experiment_name)
 
 n_hidden_neurons = 10
+level = 7
+runs = 10
+npop = 40
+gens = 50
+
 env = Environment(
     experiment_name=experiment_name,
-    enemies=[1],
+    enemies=[level],
     playermode="ai",
     player_controller=player_controller(n_hidden_neurons),
     enemymode="static",
@@ -41,8 +46,6 @@ n_vars = (env.get_num_sensors() + 1) * n_hidden_neurons + (n_hidden_neurons + 1)
 
 dom_u = 1
 dom_l = -1
-npop = 40
-gens = 100
 mutation = 0.2
 last_best = 0
 
@@ -60,7 +63,7 @@ def evaluate(env, x, min):
     return np.array(list(map(lambda y: simulation(env, y, min), x)))
 
 
-for i in range(1, 11):
+for i in range(1, runs + 1):
     # init weights
     pop = np.random.uniform(dom_l, dom_u, (1, n_vars))
 
@@ -96,15 +99,21 @@ for i in range(1, 11):
         avg_fit.append(avg_pop_fit)
 
         # same number of generations as in own EA
-        if es.countiter == 101:
+        if es.countiter == gens:
             break
-
-    # save plot
-    es.logger.plot()
-    plt.savefig("plots/plot_cma_level1_try" + str(i) + ".png")
 
     # save best_weights
     best_weights = es.result_pretty()[0].copy()
-    np.savetxt("output/best_x_cma_level1_try" + str(i), best_weights, delimiter=",")
-    np.savetxt("output/f_best_cma_level1_try" + str(i), f_best, delimiter=",")
-    np.savetxt("output/avg_fit_cma_level1_try" + str(i), avg_fit, delimiter=",")
+    np.savetxt(
+        "output/best_x_cma_level" + str(level) + "_try" + str(i),
+        best_weights,
+        delimiter=",",
+    )
+    np.savetxt(
+        "output/f_best_cma_level" + str(level) + "_try" + str(i), f_best, delimiter=","
+    )
+    np.savetxt(
+        "output/avg_fit_cma_level" + str(level) + "_try" + str(i),
+        avg_fit,
+        delimiter=",",
+    )

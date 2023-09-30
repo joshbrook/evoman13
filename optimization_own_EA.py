@@ -114,10 +114,20 @@ def survivor_selection(mutated, children, pop, fit_pop, n_top, npop, env, rep):
 
 
 def main():
-    level = 1
-    print("\nInitializing simulation, level " + str(level))
+    # variables
+    level = 7
+    runs = 10
+    n_top = 10
+    npop = 40
+    gens = 50
 
-    for i in range(1, 11):
+    print("\nInitializing simulation...")
+    print("Level:", str(level))
+    print("Runs:", str(runs))
+    print("Pop size:", str(npop))
+    print("Generations:", str(gens))
+
+    for i in range(1, runs + 1):
         print("\nRun: " + str(i))
 
         # setup
@@ -149,11 +159,8 @@ def main():
         ) * 5
 
         # variables
-        n_top = 10
         dom_u = 1
         dom_l = -1
-        npop = 40
-        gens = 100
         mutation_crit = 0.2
         rep = 0
         exit_local_optimum = False
