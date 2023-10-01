@@ -4,9 +4,8 @@
 
 This repo contains the code accompanying our paper, 
 
-`A Comparative Analysis of Evolutionary Algorithms for Game-Playing Agent Evolution:`
-
-`CMA-ES vs. a Custom EA in the EVOMAN Framework`
+*A Comparative Analysis of Evolutionary Algorithms for Game-Playing Agent Evolution:*
+*CMA-ES vs. a Custom EA in the EVOMAN Framework*
 
 Using the Evoman framework, we test, analyse, and compare the fitness of two competing algorithms, one based on CMA-ES and one created from the ground up by us, on 3 levels of the Evoman game.
 
