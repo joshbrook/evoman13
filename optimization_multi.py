@@ -144,7 +144,7 @@ def main():
         # initialise simulation
         env = Environment(
             experiment_name=experiment_name,
-            enemies=[level],
+            enemies=[1,2],
             playermode="ai",
             player_controller=player_controller(n_hidden_neurons),
             enemymode="static",
