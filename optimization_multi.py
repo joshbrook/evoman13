@@ -48,10 +48,12 @@ def mutation(parents, mut, exit_local_optimum):
             if random.uniform(0, 1) < mut:
                 # if no offspring > parent --> increase step size to find solutions outside local optimum
                 if exit_local_optimum:
-                    mut_e = mut_parent[e] + np.random.normal(0, 10)
+                    mut_e = mut_parent[e] + np.random.normal(0, 15)
+                    mut = 0.5
                 else:
                     # else add noise btw -1 and 1
                     mut_e = mut_parent[e] + np.random.normal(0, 1)
+                    mut = 0.2
                 mut_parent[e] = mut_e
 
         mutated.append(mut_parent)
@@ -115,11 +117,11 @@ def survivor_selection(mutated, children, pop, fit_pop, n_top, npop, env, rep):
 
 def main():
     # variables
-    level = 7
-    runs = 10
-    n_top = 10
-    npop = 40
-    gens = 50
+    level = "all"
+    runs = 1
+    n_top = 15
+    npop = 80
+    gens = 60
 
     print("\nInitializing simulation...")
     print("Level:", str(level))
@@ -144,7 +146,8 @@ def main():
         # initialise simulation
         env = Environment(
             experiment_name=experiment_name,
-            enemies=[1,2],
+            enemies=[1,2,3,4,5,6,7,8],
+            multiplemode="yes",
             playermode="ai",
             player_controller=player_controller(n_hidden_neurons),
             enemymode="static",
@@ -199,7 +202,7 @@ def main():
             )
 
             # check for no evolution
-            if g % 10 == 0 and g != 0 and best_f.count(best_f[-1]) > 10:
+            if g % 5 == 0 and g != 0 and best_f.count(best_f[-1]) > 10:
                 if rep < 5:
                     exit_local_optimum = True
                     print("-----ATTEMPT EXIT LOCAL OPTIMUM-----")

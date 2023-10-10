@@ -15,7 +15,8 @@ n_hidden_neurons = 10
 # initializes simulation in individual evolution mode, for single static enemy.
 env = Environment(
     experiment_name=experiment_name,
-    enemies=[1],
+    enemies=[1, 2, 3, 4, 5, 6, 7, 8],
+    multiplemode="yes",
     playermode="ai",
     player_controller=player_controller(n_hidden_neurons),
     speed="normal",
@@ -28,7 +29,7 @@ env = Environment(
 # TESTING WEIGHTS OBTAINED FROM OWN EA
 # MAKE SURE THE FILENAME FOR WEIGHTS AND FITNESS CORRESPONDS TO THE WEIGHTS AND FIT YOU WANT TO TEST
 # SEE BELOW TO TEST WEIGHTS FROM CMA
-with open("output/pop_level1_try4") as f:
+with open("output/pop_levelall_try1") as f:
     pop = f.readlines()
 
 for i in range(len(pop)):
@@ -38,7 +39,7 @@ for i in range(len(pop)):
         pop[i][j] = float(pop[i][j])
 
 
-with open("output/fit_level1_try4") as f:
+with open("output/fit_levelall_try1") as f:
     fit = f.readlines()
 
 for i in range(len(fit)):
