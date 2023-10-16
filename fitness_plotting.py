@@ -2,9 +2,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-level = 7  # input("Which level to plot: ")
-runs = 10
-gens = 50
+level = "all"  # input("Which level to plot: ")
+runs = 1
+gens = 60
 
 
 # inverse fitness function for cma results

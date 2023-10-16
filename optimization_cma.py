@@ -19,14 +19,15 @@ if not os.path.exists(experiment_name):
     os.makedirs(experiment_name)
 
 n_hidden_neurons = 10
-level = 7
-runs = 10
-npop = 40
-gens = 50
+level = "all"
+runs = 1
+npop = 60
+gens = 60
 
 env = Environment(
     experiment_name=experiment_name,
-    enemies=[level],
+    enemies=[1,8,5,2,3,6,7],
+    multiplemode="yes",
     playermode="ai",
     player_controller=player_controller(n_hidden_neurons),
     enemymode="static",

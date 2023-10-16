@@ -15,11 +15,28 @@ import random
 import os
 
 
+def fitness(p, e, t):
+    """Calculates fitness of individual"""
+    # avoid log issues
+    if t < 1:
+        t = 1
+
+    # if player wins, time penalty, else time bonus
+    # surviving longer is better, but taking longer to kill is worse
+    if p > 0:
+        lt = np.log(t)
+    else:
+        lt = - np.log(t)
+
+    # increase emphasis on keeping player health high, hopefully encouraging it to avoid damage
+    return (0.6 * (100 - e)) + (0.4 * p) + lt
+
+
 def simulation(env, x, min=False):
     """Simulates one individual and returns its fitness"""
     f, p, e, t = env.play(pcont=x)
     if not min:
-        return f
+        return fitness(p, e, t)
     else:
         f = (f - (-100)) / (100 - (-100)) * 100
         return abs(f - 100)
@@ -42,7 +59,7 @@ def mutation(parents, mut, exit_local_optimum):
         # duplicate parent
         mut_parent = parent.copy()
 
-        # iter over the genes and randomly add gaussian noise
+        # iterate over the genes and randomly add gaussian noise
         # mut is the mutation criteria between 0 & 1 - higher --> more prob of mutation
         for e in range(len(parent)):
             if random.uniform(0, 1) < mut:
@@ -71,17 +88,27 @@ def crossover(mutated, n_top, npop):
         # generate random index between 2nd element & one before last element
         i = random.randint(1, len(p1))
 
-        # concatenate p1 until i with p2 going from i
-        # EXAMPLE
-        # p1 = ------------
-        # p2 = &&&&&&&&&&&&
-        # i = 3
-        # c1 = ---&&&&&&&&&
-        # c2 = &&&---------
-
         children.append(np.concatenate((p1[:i], p2[i:])))
 
     return children
+
+
+def blend_crossover(mutated, n_top, npop):
+    """random-index-based blend crossover"""
+
+    children = []
+    for n in range(npop - n_top):
+        # take two random candidate parents from top_n individuals
+        p1, p2 = random.sample(list(mutated), 2)
+        c = [None] * len(p1)
+        alpha = 0.5
+        for i in range(len(p1)):
+            d = p2[i] - p1[i]
+            option = [p1[i] - alpha * d, p2[i] + alpha * d]
+            c[i] = random.choice(option)
+
+        children.append(c)
+    return np.array(children)
 
 
 def survivor_selection(mutated, children, pop, fit_pop, n_top, npop, env, rep):
@@ -92,21 +119,20 @@ def survivor_selection(mutated, children, pop, fit_pop, n_top, npop, env, rep):
     Test each child against random individual from previous generation.
     If better, replace previous individual with new child in next generation.
     """
-    bottom_n = pop[np.argpartition(np.array(fit_pop), (npop - n_top))[(npop - n_top) :]]
+    bottom_n = pop[np.argpartition(np.array(fit_pop), (npop - n_top))[n_top:]]
     newpop = list(mutated)
 
-    for child in children:
-        # evaluate child with random individual from previous generation
-        parent = random.choice(bottom_n)
-        f_c = simulation(env, child)
-        f_p = simulation(env, parent)
+    for i in range(len(children)):
+
+        f_c = simulation(env, children[i])
+        f_p = simulation(env, bottom_n[i])
 
         # if f of child > f of chosen individual, then replace
         if f_c > f_p:
-            newpop.append(child)
+            newpop.append(children[i])
             rep += 1
         else:
-            newpop.append(parent)
+            newpop.append(bottom_n[i])
 
     pop = np.array(newpop)
 
@@ -117,10 +143,11 @@ def survivor_selection(mutated, children, pop, fit_pop, n_top, npop, env, rep):
 
 def main():
     # variables
-    level = "all"
+    level = "368257"
+    levels = [int(l) for l in level]  # [1,8,5,2,3,6,7,8,1]
     runs = 1
-    n_top = 15
-    npop = 80
+    n_top = 20
+    npop = 100
     gens = 60
 
     print("\nInitializing simulation...")
@@ -146,7 +173,7 @@ def main():
         # initialise simulation
         env = Environment(
             experiment_name=experiment_name,
-            enemies=[1,2,3,4,5,6,7,8],
+            enemies=levels,
             multiplemode="yes",
             playermode="ai",
             player_controller=player_controller(n_hidden_neurons),
@@ -158,15 +185,17 @@ def main():
 
         # no. weights for multilayer with 10 hidden neurons
         n_vars = (env.get_num_sensors() + 1) * n_hidden_neurons + (
-            n_hidden_neurons + 1
+                n_hidden_neurons + 1
         ) * 5
 
-        # variables
+        # standard variables
         dom_u = 1
         dom_l = -1
         mutation_crit = 0.2
         rep = 0
         exit_local_optimum = False
+
+        # init population
         pop = np.random.uniform(dom_l, dom_u, (npop, n_vars))
         pop_fit = evaluate(env, pop)
         best_f = [np.amax(np.array(pop_fit))]
@@ -194,16 +223,17 @@ def main():
             mutated = mutation(parents, mutation_crit, exit_local_optimum)
 
             # Crossover
-            children = crossover(mutated, n_top, npop)
+            children = blend_crossover(mutated, n_top, npop)
 
             # Survivor selection
             pop, pop_fit, rep = survivor_selection(
                 mutated, children, pop, pop_fit, n_top, npop, env, rep
             )
 
-            # check for no evolution
+            # check for no evolution every five generations
             if g % 5 == 0 and g != 0 and best_f.count(best_f[-1]) > 10:
-                if rep < 5:
+                if rep < n_top:
+                    # if less than n_top new individuals in next generation, try exit local optimum
                     exit_local_optimum = True
                     print("-----ATTEMPT EXIT LOCAL OPTIMUM-----")
                 else:

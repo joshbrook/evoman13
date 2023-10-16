@@ -1,83 +1,38 @@
 import os
-import cma
-import time
 import numpy as np
 
 from evoman.environment import Environment
 from demo_controller import player_controller
 
 
-headless = True
-if headless:
-    os.environ["SDL_VIDEODRIVER"] = "dummy"
-
-
-experiment_name = "cma_opt_test"
+experiment_name = "weight_test"
 if not os.path.exists(experiment_name):
     os.makedirs(experiment_name)
 
 n_hidden_neurons = 10
+
+
+# initializes simulation in individual evolution mode, for single static enemy.
 env = Environment(
     experiment_name=experiment_name,
-    enemies=[1],
+    enemies=[1, 2, 3, 4, 5, 6, 7, 8],
+    multiplemode="yes",
     playermode="ai",
     player_controller=player_controller(n_hidden_neurons),
+    speed="normal",
     enemymode="static",
     level=2,
-    speed="fastest",
-    visuals=False,
+    visuals=True,
 )
 
-ini = time.time()  # sets time marker
 
+# TESTING WEIGHTS OBTAINED FROM OWN EA
+# MAKE SURE THE FILENAME FOR WEIGHTS AND FITNESS CORRESPONDS TO THE WEIGHTS AND FIT YOU WANT TO TEST
+# SEE BELOW TO TEST WEIGHTS FROM CMA
+with open("output/best_x_cma_levelall_try1") as f:
+    pop = [float(n.strip()) for n in f.readlines()]
 
-# genetic algorithm params
+print(pop)
 
-run_mode = "train"  # train or test
-
-# number of weights for multilayer with 10 hidden neurons
-n_vars = (env.get_num_sensors() + 1) * n_hidden_neurons + (n_hidden_neurons + 1) * 5
-
-
-dom_u = 1
-dom_l = -1
-npop = 100
-gens = 30
-mutation = 0.2
-last_best = 0
-
-
-def simulation(env, x):
-    f, p, e, t = env.play(pcont=x)
-    return abs(f * -1)
-
-
-# n_vars = (env.get_num_sensors()+1)*n_hidden_neurons + (n_hidden_neurons+1)*5
-
-# 100 dif weights
-pop = np.random.uniform(dom_l, dom_u, (npop, n_vars))
-best_weights = []
-
-
-for i in range(0, 99):
-    # select pop iter
-    cur_pop = pop[i]
-
-    # init cma
-    es = cma.CMAEvolutionStrategy(cur_pop, 40)
-
-    # es.opts.set({'tolflatfitness' : 5})
-    es.opts.set({"ftarget": 2.5})
-
-    # find solution for current weights
-    while not es.stop():
-        solutions = es.ask()
-        es.tell(solutions, [simulation(env, cur_pop) for cur_pop in solutions])
-        es.logger.add()
-        es.disp()
-
-    # append the current best weight to best_weights list
-    best_weights.append(es.result_pretty()[0].copy())
-
-# SAVE WEIGHTS
-np.savetxt("best_x___||", best_weights, delimiter=",")
+f, _, _, _ = env.play(pcont=np.array(pop))
+print("Fitness: ", f)
