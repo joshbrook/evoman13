@@ -65,11 +65,11 @@ def mutation(parents, mut, exit_local_optimum):
             if random.uniform(0, 1) < mut:
                 # if no offspring > parent --> increase step size to find solutions outside local optimum
                 if exit_local_optimum:
-                    mut_e = mut_parent[e] + np.random.normal(0, 15)
+                    mut_e = mut_parent[e] + np.random.normal(-10, 10)
                     mut = 0.5
                 else:
                     # else add noise btw -1 and 1
-                    mut_e = mut_parent[e] + np.random.normal(0, 1)
+                    mut_e = mut_parent[e] + np.random.normal(-1, 1) 
                     mut = 0.2
                 mut_parent[e] = mut_e
 
@@ -111,7 +111,7 @@ def blend_crossover(mutated, n_top, npop):
     return np.array(children)
 
 
-def survivor_selection(mutated, children, pop, fit_pop, n_top, npop, env, rep):
+def survivor_selection(mutated, children, pop, fit_pop, n_top, npop, env, rep, g):
     """
     Modified Elitism selection strategy.
     Keep top_n parents in next generation
@@ -119,6 +119,8 @@ def survivor_selection(mutated, children, pop, fit_pop, n_top, npop, env, rep):
     Test each child against random individual from previous generation.
     If better, replace previous individual with new child in next generation.
     """
+    #e = env.enemies
+
     bottom_n = pop[np.argpartition(np.array(fit_pop), (npop - n_top))[n_top:]]
     newpop = list(mutated)
 
@@ -137,18 +139,20 @@ def survivor_selection(mutated, children, pop, fit_pop, n_top, npop, env, rep):
     pop = np.array(newpop)
 
     # evaluate new pop fitness
+    #env.enemies = [1, 2, 3, 4, 5, 6, 7, 8]
     fit = evaluate(env, pop)
+    #env.enemies = e
+
     return pop, fit, rep
 
 
 def main():
     # variables
-    level = "368257"
-    levels = [int(l) for l in level]  # [1,8,5,2,3,6,7,8,1]
-    runs = 1
-    n_top = 20
-    npop = 100
-    gens = 60
+    level = "a2"
+    runs = 10
+    n_top = 15
+    npop = 80
+    gens = 80
 
     print("\nInitializing simulation...")
     print("Level:", str(level))
@@ -173,7 +177,7 @@ def main():
         # initialise simulation
         env = Environment(
             experiment_name=experiment_name,
-            enemies=levels,
+            enemies=[1, 2, 3, 4, 5, 6, 7, 8],
             multiplemode="yes",
             playermode="ai",
             player_controller=player_controller(n_hidden_neurons),
@@ -197,17 +201,30 @@ def main():
 
         # init population
         pop = np.random.uniform(dom_l, dom_u, (npop, n_vars))
+
+        # evaluate on all enemies
+        env.enemies = [1, 2, 3, 4, 5, 6, 7, 8]
         pop_fit = evaluate(env, pop)
         best_f = [np.amax(np.array(pop_fit))]
         mean_f = [np.mean(np.array(pop_fit))]
+        # env.enemies = [int(l) for l in "1468"]
 
         # generations
         for g in range(gens + 1):
-            # keep track of f best
-            best_f.append(np.amax(np.array(pop_fit)))
+            
+            """
+            # change enemy set every 15 generations
+            if g % 15 == 0 and g != 0:
+                if env.enemies == [int(l) for l in "1468"]:
+                    env.enemies = [int(l) for l in "2357"]
+                else:
+                    env.enemies = [int(l) for l in "1468"]
+            
+            # train against all for last 20 generations
+            if g >= gens-20:
+                env.enemies = [int(l) for l in "12345678"]
 
-            # keep track of mean f
-            mean_f.append(np.mean(np.array(pop_fit)))
+            """
 
             # print info about gen and best fit
             if g % 5 == 0:
@@ -227,11 +244,11 @@ def main():
 
             # Survivor selection
             pop, pop_fit, rep = survivor_selection(
-                mutated, children, pop, pop_fit, n_top, npop, env, rep
+                mutated, children, pop, pop_fit, n_top, npop, env, rep, g
             )
 
             # check for no evolution every five generations
-            if g % 5 == 0 and g != 0 and best_f.count(best_f[-1]) > 10:
+            if g % 5 == 0 and g != 0 and best_f.count(best_f[-1]) > 5:
                 if rep < n_top:
                     # if less than n_top new individuals in next generation, try exit local optimum
                     exit_local_optimum = True
@@ -239,6 +256,12 @@ def main():
                 else:
                     exit_local_optimum = False
                 rep = 0
+
+            # keep track of f best
+            best_f.append(np.amax(np.array(pop_fit)))
+
+            # keep track of mean f
+            mean_f.append(np.mean(np.array(pop_fit)))
 
         # save results
         np.savetxt(

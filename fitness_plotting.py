@@ -2,8 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-level = "all"  # input("Which level to plot: ")
-runs = 1
+level = "sep"  # input("Which level to plot: ")
+runs = 7
 gens = 60
 
 
@@ -74,8 +74,7 @@ for j in range(len(mean_fitnesses_own_ea[0])):
 
 
 #################### CMA ####################
-
-
+"""
 fitness_cma = []
 # LOOP OVER 10 RUNS
 for o in range(1, runs + 1):
@@ -137,29 +136,30 @@ for j in range(len(mean_fitnesses_cma[0])):
     mean_of_mean_f_cma.append(sum_fit / len(mean_fitnesses_cma))
     if len(mean_of_mean_f_cma) == gens:
         break
+"""
 
 std_own_ea_plus = np.add(np.array(avg_mean_f_own_ea), np.array(std_own_ea))
 std_own_ea_minus = np.subtract(np.array(avg_mean_f_own_ea), np.array(std_own_ea))
-std_cma_plus = np.add(np.array(mean_of_mean_f_cma), np.array(std_cma))
-std_cma_minus = np.subtract(np.array(mean_of_mean_f_cma), np.array(std_cma))
+# std_cma_plus = np.add(np.array(mean_of_mean_f_cma), np.array(std_cma))
+# std_cma_minus = np.subtract(np.array(mean_of_mean_f_cma), np.array(std_cma))
 
 
 #################### PLOTTING ####################
 
 
 line1 = plt.plot(avg_best_f_own_ea, label="Avg best fitness Own EA")
-line2 = plt.plot(avg_best_f_cma, label="Avg best fitness CMA")
+# line2 = plt.plot(avg_best_f_cma, label="Avg best fitness CMA")
 line3 = plt.plot(avg_mean_f_own_ea, label="Avg mean fitness Own EA", color="#15a9e8")
-line4 = plt.plot(mean_of_mean_f_cma, label="Avg mean fitness CMA", color="#f2b422")
+#line4 = plt.plot(mean_of_mean_f_cma, label="Avg mean fitness CMA", color="#f2b422")
 line5 = plt.plot(std_own_ea_plus, "--", linewidth=0.3)
 line6 = plt.plot(std_own_ea_minus, "--", linewidth=0.3)
-line7 = plt.plot(std_cma_minus, "--", linewidth=0.3)
-line8 = plt.plot(std_cma_plus, "--", linewidth=0.3)
+#line7 = plt.plot(std_cma_minus, "--", linewidth=0.3)
+#line8 = plt.plot(std_cma_plus, "--", linewidth=0.3)
 
 
 np_gens = np.arange(0, gens, 1)
 plt.fill_between(np_gens, std_own_ea_plus, std_own_ea_minus, alpha=0.3)
-plt.fill_between(np_gens, std_cma_plus, std_cma_minus, alpha=0.3)
+#plt.fill_between(np_gens, std_cma_plus, std_cma_minus, alpha=0.3)
 
 
 plt.legend(prop={"family":"serif"})

@@ -17,13 +17,14 @@ if not os.path.exists(experiment_name):
 n_hidden_neurons = 10
 
 # change values here
-level = 7
+level = "all"
 tries = 10
 
 # initializes simulation in individual evolution mode, for single static enemy.
 env = Environment(
     experiment_name=experiment_name,
-    enemies=[level],  # CHANGE LEVEL HERE
+    enemies=[1, 2, 3, 4, 5, 6, 7, 8],  # CHANGE LEVEL HERE
+    multiplemode="yes",
     playermode="ai",
     player_controller=player_controller(n_hidden_neurons),
     speed="fastest",
@@ -78,42 +79,7 @@ for attempt in range(1, tries+1):
         individual_gain += p - e
         # print(individual_gain)
     np.savetxt(
-        "output/ind_gain_own_ea_level" + str(level) + "_try" + str(attempt),
-        [individual_gain / 5],
-        delimiter=",",
-    )
-
-
-for attempt in range(1, tries+1):
-
-    with open('output/best_x_cma_level' + str(level) + "_try" + str(attempt)) as f:
-        pop = f.readlines()
-
-    for i in range(len(pop)):
-        pop[i] = pop[i].split(',')
-        for j in range(len(pop[i])):
-            pop[i][j] = pop[i][j].strip()
-            pop[i][j] = float(pop[i][j])
-
-
-    with open("output/f_best_cma_level" + str(level) + "_try" + str(attempt)) as f:
-        fit = f.readlines()
-
-    for i in range(len(fit)):
-        fit[i] = fit[i].split(",")
-        for j in range(len(fit[i])):
-            fit[i][j] = fit[i][j].strip()
-            fit[i][j] = float(fit[i][j])
-
-
-    individual_gain = 0
-
-    for i in range(5):
-        f, p, e, t = env.play(pcont=np.array(pop))
-        individual_gain += p - e
-        # print(individual_gain)
-    np.savetxt(
-        "output/ind_gain_cma_level" + str(level) + "_try" + str(attempt),
+        "output/ind_gain_level" + str(level) + "_try" + str(attempt),
         [individual_gain / 5],
         delimiter=",",
     )
